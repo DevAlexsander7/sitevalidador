@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Validação de Ingressos</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode/minified/html5-qrcode.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        #reader {
+            border: none !important;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
+            border-radius: 1rem !important;
+            overflow: hidden !important;
+        }
+        
+        #reader video {
+            border-radius: 1rem !important;
+        }
+
+        #reader .qr-shaded-region {
+            border: none !important;
+            background: rgba(0, 0, 0, 0.6) !important;
+        }
+
+        #reader .qr-region-single {
+            border: 3px solid #6366F1 !important;
+            box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.5) !important;
+            background: transparent !important;
+        }
+
+        .animate-pulse-border {
+            animation: pulse-border 2s infinite;
+        }
+
+        @keyframes pulse-border {
+            0% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(99, 102, 241, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
+        }
+
+        .ticket-item {
+            transition: all 0.3s ease;
+        }
+
+        .ticket-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%);
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+            transition: all 0.3s ease;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-50 via-white to-purple-50 min-h-screen">
+    <header class="w-full glass-effect border-b border-indigo-100 fixed top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-ticket-alt text-indigo-600 text-2xl"></i>
+                    <h1 class="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                        Sistema de Validação de Ingressos
+                    </h1>
+                </div>
+                <div class="text-sm text-gray-500">
+                    <i class="far fa-clock"></i>
+                    <span id="current-time"></span>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <main class="flex flex-col items-center pt-24 pb-12 px-4 max-w-4xl mx-auto">
+        <div class="w-full max-w-md">
+            <button id="start-scan" class="btn-primary w-full text-white px-8 py-4 rounded-xl mb-6 focus:outline-none font-semibold flex items-center justify-center space-x-2">
+                <i class="fas fa-qrcode"></i>
+                <span>Iniciar Leitura</span>
+            </button>
+            
+            <div id="reader" class="w-full max-w-md aspect-video glass-effect rounded-xl shadow-lg animate-pulse-border" style="display: none;"></div>
+            
+            <div id="result" class="mt-6 text-center space-y-3"></div>
+            
+            <button id="scan-another" class="btn-success w-full text-white px-8 py-4 rounded-xl mt-6 focus:outline-none font-semibold flex items-center justify-center space-x-2" style="display: none;">
+                <i class="fas fa-redo"></i>
+                <span>Ler Outro Ingresso</span>
+            </button>
+        </div>
+        
+        <section id="registro-lista" class="w-full mt-12">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-bold text-gray-800 flex items-center">
+                    <i class="fas fa-list-ul text-indigo-600 mr-2"></i>
+                    Ingressos Validados
+                </h2>
+                <span class="bg-indigo-100 text-indigo-800 py-1 px-3 rounded-full text-sm font-medium" id="total-count">
+                    Total: 0
+                </span>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-6 divide-y divide-gray-100">
+                <ul id="lista-ingressos" class="space-y-4"></ul>
+            </div>
+        </section>
+    </main>
+    
+    <script>
+        const startScanButton = document.getElementById('start-scan');
+        const readerElement = document.getElementById('reader');
+        const resultElement = document.getElementById('result');
+        const listaIngressosElement = document.getElementById('lista-ingressos');
+        const scanAnotherButton = document.getElementById('scan-another');
+
+        let ingressosLidos = [];
+
+        // Função para carregar ingressos do localStorage
+        function carregarIngressos() {
+            const dados = localStorage.getItem('ingressosLidos');
+            if (dados) {
+                ingressosLidos = JSON.parse(dados);
+                ingressosLidos.forEach(({ nome, cpf, horarioEntrada }) => {
+                    adicionarIngressoNaLista(nome, cpf, horarioEntrada);
+                });
+            }
+        }
+
+        // Função para salvar ingressos no localStorage
+        function salvarIngressos() {
+            localStorage.setItem('ingressosLidos', JSON.stringify(ingressosLidos));
+        }
+
+        // Adiciona evento para iniciar leitura
+        startScanButton.addEventListener('click', () => {
+            iniciarLeitura();
+        });
+
+        scanAnotherButton.addEventListener('click', () => {
+            iniciarLeitura();
+        });
+
+        function iniciarLeitura() {
+            startScanButton.style.display = 'none';
+            scanAnotherButton.style.display = 'none';
+            readerElement.style.display = 'block';
+            resultElement.innerHTML = '';
+
+            const html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.start(
+                { facingMode: "environment" }, // câmera traseira
+                {
+                    fps: 10,    // quadros por segundo
+                    qrbox: 250  // tamanho da área de detecção
+                },
+                qrCodeMessage => {
+                    html5QrCode.stop(); // Parar leitura após escanear
+                    mostrarDadosIngresso(qrCodeMessage);
+                },
+                errorMessage => {
+                    console.warn('Erro na leitura: ', errorMessage);
+                }
+            ).catch(err => {
+                console.error("Erro ao iniciar o leitor de QR Code: ", err);
+            });
+        }
+
+        function updateCurrentTime() {
+            const now = new Date();
+            document.getElementById('current-time').textContent = now.toLocaleTimeString('pt-BR');
+        }
+        
+        setInterval(updateCurrentTime, 1000);
+        updateCurrentTime();
+
+        function mostrarDadosIngresso(qrCodeMessage) {
+            const horarioEntrada = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+            let dados;
+            try {
+                dados = JSON.parse(qrCodeMessage);
+                if (!dados.nome || !dados.cpf) throw new Error("Dados incompletos no QR Code.");
+            } catch (e) {
+                resultElement.innerHTML = `
+                    <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg">
+                        <div class="flex items-center">
+                            <i class="fas fa-exclamation-circle mr-2"></i>
+                            <p>Erro ao processar QR Code: ${e.message}</p>
+                        </div>
+                    </div>
+                `;
+                scanAnotherButton.style.display = 'block';
+                return;
+            }
+
+            const { nome, cpf } = dados;
+            const ingressoExistente = ingressosLidos.find(ingresso => ingresso.cpf === cpf);
+            
+            if (ingressoExistente) {
+                resultElement.innerHTML = `
+                    <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg mb-4">
+                        <div class="flex items-center">
+                            <i class="fas fa-exclamation-triangle mr-2"></i>
+                            <div>
+                                <p class="font-semibold">Ingresso já utilizado</p>
+                                <p class="text-sm">Primeira leitura: ${ingressoExistente.horarioEntrada}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-lg p-4 shadow-md">
+                        <div class="space-y-2">
+                            <p><i class="far fa-user mr-2"></i>${ingressoExistente.nome}</p>
+                            <p><i class="far fa-id-card mr-2"></i>${ingressoExistente.cpf}</p>
+                        </div>
+                    </div>
+                `;
+            } else {
+                resultElement.innerHTML = `
+                    <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-lg mb-4">
+                        <div class="flex items-center">
+                            <i class="fas fa-check-circle mr-2"></i>
+                            <p>Ingresso validado com sucesso!</p>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-lg p-4 shadow-md">
+                        <div class="space-y-2">
+                            <p><i class="far fa-user mr-2"></i>${nome}</p>
+                            <p><i class="far fa-id-card mr-2"></i>${cpf}</p>
+                            <p><i class="far fa-clock mr-2"></i>${horarioEntrada}</p>
+                        </div>
+                    </div>
+                `;
+                registrarIngresso(nome, cpf, horarioEntrada);
+            }
+            scanAnotherButton.style.display = 'block';
+            readerElement.style.display = 'none';
+        }
+
+        function registrarIngresso(nome, cpf, horarioEntrada) {
+            ingressosLidos.push({ nome, cpf, horarioEntrada });
+            salvarIngressos();
+            adicionarIngressoNaLista(nome, cpf, horarioEntrada);
+        }
+
+        function adicionarIngressoNaLista(nome, cpf, horarioEntrada) {
+            const ingressoItem = document.createElement('li');
+            ingressoItem.classList.add('ticket-item', 'p-4', 'bg-white', 'rounded-lg', 'hover:bg-gray-50');
+            ingressoItem.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <div class="space-y-1">
+                        <p class="font-medium text-gray-900">
+                            <i class="far fa-user text-indigo-600 mr-2"></i>${nome}
+                        </p>
+                        <p class="text-sm text-gray-600">
+                            <i class="far fa-id-card text-indigo-400 mr-2"></i>${cpf}
+                        </p>
+                        <p class="text-xs text-gray-500">
+                            <i class="far fa-clock text-indigo-400 mr-2"></i>${horarioEntrada}
+                        </p>
+                    </div>
+                    <div class="flex items-center justify-center h-10 w-10 rounded-full bg-green-100">
+                        <i class="fas fa-check text-green-600"></i>
+                    </div>
+                </div>
+            `;
+            listaIngressosElement.insertBefore(ingressoItem, listaIngressosElement.firstChild);
+            document.getElementById('total-count').textContent = `Total: ${ingressosLidos.length}`;
+        }
+
+        // Carrega ingressos salvos ao iniciar
+        carregarIngressos();
+    </script>
+</body>
+</html>
