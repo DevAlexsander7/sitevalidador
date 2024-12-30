@@ -6,26 +6,56 @@
     <title>Leitor de QR Code de Ingressos</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
     <script src="https://cdn.jsdelivr.net/npm/html5-qrcode/minified/html5-qrcode.min.js"></script>
+    <style>
+        /* Reset do estilo do leitor QR */
+        #reader {
+            border: none !important;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+            border-radius: 0.5rem !important;
+            overflow: hidden !important;
+        }
+        
+        #reader video {
+            border-radius: 0.5rem !important;
+        }
+
+        /* Remove background interno e mantém apenas as bordas de scan */
+        #reader .qr-shaded-region {
+            border: none !important;
+            background: rgba(0, 0, 0, 0.5) !important;
+        }
+
+        #reader .qr-region-single {
+            border: 3px solid #3B82F6 !important;
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5) !important;
+            background: transparent !important;
+        }
+
+        /* Animação suave para transições */
+        .transition-all {
+            transition: all 0.3s ease-in-out;
+        }
+    </style>
 </head>
-<body class="bg-gray-100 flex flex-col items-center justify-center min-h-screen">
-    <header class="w-full bg-blue-600 p-4 text-white text-center text-lg font-bold">
-        Leitor de QR Code de Ingressos
+<body class="bg-gradient-to-b from-gray-50 to-gray-100 flex flex-col items-center justify-center min-h-screen">
+    <header class="w-full bg-gradient-to-r from-blue-600 to-blue-700 p-6 text-white text-center shadow-lg">
+        <h1 class="text-2xl font-bold">Leitor de QR Code de Ingressos</h1>
     </header>
     
-    <main class="flex flex-col items-center mt-8 w-full px-4">
-        <button id="start-scan" class="bg-blue-600 text-white px-6 py-3 rounded-md mb-6 focus:outline-none hover:bg-blue-700">
+    <main class="flex flex-col items-center mt-8 w-full px-4 max-w-2xl mx-auto">
+        <button id="start-scan" class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-4 rounded-lg mb-6 focus:outline-none hover:from-blue-700 hover:to-blue-800 transform hover:scale-105 transition-all shadow-md text-lg font-semibold">
             Ler Ingresso
         </button>
         
-        <div id="reader" class="w-full max-w-md h-64 bg-gray-300" style="display: none;"></div>
-        <div id="result" class="mt-4 text-center text-lg font-semibold text-gray-800"></div>
-        <button id="scan-another" class="bg-green-600 text-white px-6 py-3 rounded-md mt-4 focus:outline-none hover:bg-green-700" style="display: none;">
+        <div id="reader" class="w-full max-w-md aspect-video bg-white rounded-lg shadow-lg" style="display: none;"></div>
+        <div id="result" class="mt-6 text-center text-lg font-semibold text-gray-800 w-full max-w-md"></div>
+        <button id="scan-another" class="bg-gradient-to-r from-green-600 to-green-700 text-white px-8 py-4 rounded-lg mt-6 focus:outline-none hover:from-green-700 hover:to-green-800 transform hover:scale-105 transition-all shadow-md text-lg font-semibold" style="display: none;">
             Ler Outro Ingresso
         </button>
         
-        <section id="registro-lista" class="w-full mt-8 max-w-md">
-            <h2 class="text-xl font-bold mb-4 text-center">Ingressos Lidos</h2>
-            <ul id="lista-ingressos" class="bg-white p-4 rounded-md shadow-md"></ul>
+        <section id="registro-lista" class="w-full mt-12 max-w-md">
+            <h2 class="text-2xl font-bold mb-6 text-center text-gray-800">Ingressos Lidos</h2>
+            <ul id="lista-ingressos" class="bg-white p-6 rounded-lg shadow-lg space-y-4"></ul>
         </section>
     </main>
     
