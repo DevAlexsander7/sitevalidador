@@ -6,58 +6,39 @@
     <title>Leitor de QR Code de Ingressos</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
     <script src="https://cdn.jsdelivr.net/npm/html5-qrcode/minified/html5-qrcode.min.js"></script>
-    <style>
-        /* Reset do estilo do leitor QR */
-        #reader {
-            border: none !important;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
-            border-radius: 0.5rem !important;
-            overflow: hidden !important;
-        }
-        
-        #reader video {
-            border-radius: 0.5rem !important;
-        }
-
-        /* Remove background interno e mantém apenas as bordas de scan */
-        #reader .qr-shaded-region {
-            border: none !important;
-            background: rgba(0, 0, 0, 0.5) !important;
-        }
-
-        #reader .qr-region-single {
-            border: 3px solid #3B82F6 !important;
-            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5) !important;
-            background: transparent !important;
-        }
-
-        /* Animação suave para transições */
-        .transition-all {
-            transition: all 0.3s ease-in-out;
-        }
-    </style>
 </head>
-<body class="bg-gradient-to-b from-gray-50 to-gray-100 flex flex-col items-center justify-center min-h-screen">
-    <header class="w-full bg-gradient-to-r from-blue-600 to-blue-700 p-6 text-white text-center shadow-lg">
-        <h1 class="text-2xl font-bold">Leitor de QR Code de Ingressos</h1>
+<body class="bg-gray-100 flex flex-col items-center justify-center min-h-screen">
+    <header class="w-full bg-blue-600 p-4 text-white text-center text-lg font-bold">
+        Leitor de QR Code de Ingressos
     </header>
     
-    <main class="flex flex-col items-center mt-8 w-full px-4 max-w-2xl mx-auto">
-        <button id="start-scan" class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-4 rounded-lg mb-6 focus:outline-none hover:from-blue-700 hover:to-blue-800 transform hover:scale-105 transition-all shadow-md text-lg font-semibold">
+    <main class="flex flex-col items-center mt-8 w-full px-4">
+        <button id="start-scan" class="bg-blue-600 text-white px-6 py-3 rounded-md mb-6 focus:outline-none hover:bg-blue-700">
             Ler Ingresso
         </button>
         
-        <div id="reader" class="w-full max-w-md aspect-video bg-white rounded-lg shadow-lg" style="display: none;"></div>
-        <div id="result" class="mt-6 text-center text-lg font-semibold text-gray-800 w-full max-w-md"></div>
-        <button id="scan-another" class="bg-gradient-to-r from-green-600 to-green-700 text-white px-8 py-4 rounded-lg mt-6 focus:outline-none hover:from-green-700 hover:to-green-800 transform hover:scale-105 transition-all shadow-md text-lg font-semibold" style="display: none;">
+        <div id="reader" class="w-full max-w-md h-64 bg-gray-300" style="display: none;"></div>
+        <div id="result" class="mt-4 text-center text-lg font-semibold text-gray-800"></div>
+        <button id="scan-another" class="bg-green-600 text-white px-6 py-3 rounded-md mt-4 focus:outline-none hover:bg-green-700" style="display: none;">
             Ler Outro Ingresso
         </button>
         
-        <section id="registro-lista" class="w-full mt-12 max-w-md">
-            <h2 class="text-2xl font-bold mb-6 text-center text-gray-800">Ingressos Lidos</h2>
-            <ul id="lista-ingressos" class="bg-white p-6 rounded-lg shadow-lg space-y-4"></ul>
+        <section id="registro-lista" class="w-full mt-8 max-w-md">
+            <h2 class="text-xl font-bold mb-4 text-center">Ingressos Lidos</h2>
+            <ul id="lista-ingressos" class="bg-white p-4 rounded-md shadow-md"></ul>
         </section>
     </main>
+    
+    <footer class="w-full bg-blue-600 text-white py-4 mt-8 text-center fixed bottom-0">
+        <p class="text-sm">
+            <span class="font-semibold">Criador:</span> Alexsander Espechit
+        </p>
+        <p class="text-sm mt-1">
+            <span class="font-semibold">Feito para:</span> Pousada Real Cipó
+        </p>
+    </footer>
+
+    <div class="pb-24"></div> <!-- Spacer to prevent content from being hidden behind fixed footer -->
     
     <script>
         const startScanButton = document.getElementById('start-scan');
@@ -67,24 +48,7 @@
         const scanAnotherButton = document.getElementById('scan-another');
 
         let ingressosLidos = [];
-
-        // Função para carregar ingressos do localStorage
-        function carregarIngressos() {
-            const dados = localStorage.getItem('ingressosLidos');
-            if (dados) {
-                ingressosLidos = JSON.parse(dados);
-                ingressosLidos.forEach(({ nome, cpf, horarioEntrada }) => {
-                    adicionarIngressoNaLista(nome, cpf, horarioEntrada);
-                });
-            }
-        }
-
-        // Função para salvar ingressos no localStorage
-        function salvarIngressos() {
-            localStorage.setItem('ingressosLidos', JSON.stringify(ingressosLidos));
-        }
-
-        // Adiciona evento para iniciar leitura
+        
         startScanButton.addEventListener('click', () => {
             iniciarLeitura();
         });
@@ -120,21 +84,10 @@
 
         function mostrarDadosIngresso(qrCodeMessage) {
             const horarioEntrada = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
-            let dados;
-            try {
-                dados = JSON.parse(qrCodeMessage);
-                if (!dados.nome || !dados.cpf) throw new Error("Dados incompletos no QR Code.");
-            } catch (e) {
-                resultElement.innerHTML = `
-                    <div class="bg-red-500 text-white p-4 rounded-md mb-4">
-                        <p>Erro ao processar QR Code: ${e.message}</p>
-                    </div>
-                `;
-                scanAnotherButton.style.display = 'block';
-                return;
-            }
-
-            const { nome, cpf } = dados;
+            const dados = JSON.parse(qrCodeMessage);
+            const nome = dados.nome;
+            const cpf = dados.cpf;
+            
             const ingressoExistente = ingressosLidos.find(ingresso => ingresso.cpf === cpf);
             if (ingressoExistente) {
                 resultElement.innerHTML = `
@@ -159,11 +112,6 @@
 
         function registrarIngresso(nome, cpf, horarioEntrada) {
             ingressosLidos.push({ nome, cpf, horarioEntrada });
-            salvarIngressos();
-            adicionarIngressoNaLista(nome, cpf, horarioEntrada);
-        }
-
-        function adicionarIngressoNaLista(nome, cpf, horarioEntrada) {
             const ingressoItem = document.createElement('li');
             ingressoItem.classList.add('mb-2', 'p-2', 'border', 'border-gray-300', 'rounded-md');
             ingressoItem.innerHTML = `
@@ -173,9 +121,132 @@
             `;
             listaIngressosElement.appendChild(ingressoItem);
         }
+    </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leitor de QR Code de Ingressos</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode/minified/html5-qrcode.min.js"></script>
+</head>
+<body class="bg-gray-100 flex flex-col items-center justify-center min-h-screen">
+    <header class="w-full bg-blue-600 p-4 text-white text-center text-lg font-bold">
+        Leitor de QR Code de Ingressos
+    </header>
+    
+    <main class="flex flex-col items-center mt-8 w-full px-4">
+        <button id="start-scan" class="bg-blue-600 text-white px-6 py-3 rounded-md mb-6 focus:outline-none hover:bg-blue-700">
+            Ler Ingresso
+        </button>
+        
+        <div id="reader" class="w-full max-w-md h-64 bg-gray-300" style="display: none;"></div>
+        <div id="result" class="mt-4 text-center text-lg font-semibold text-gray-800"></div>
+        <button id="scan-another" class="bg-green-600 text-white px-6 py-3 rounded-md mt-4 focus:outline-none hover:bg-green-700" style="display: none;">
+            Ler Outro Ingresso
+        </button>
+        
+        <section id="registro-lista" class="w-full mt-8 max-w-md">
+            <h2 class="text-xl font-bold mb-4 text-center">Ingressos Lidos</h2>
+            <ul id="lista-ingressos" class="bg-white p-4 rounded-md shadow-md"></ul>
+        </section>
+    </main>
+    
+    <footer class="w-full bg-blue-600 text-white py-4 mt-8 text-center fixed bottom-0">
+        <p class="text-sm">
+            <span class="font-semibold">Criador:</span> Alexsander Espechit
+        </p>
+        <p class="text-sm mt-1">
+            <span class="font-semibold">Feito para:</span> Pousada Real Cipó
+        </p>
+    </footer>
 
-        // Carrega ingressos salvos ao iniciar
-        carregarIngressos();
+    <div class="pb-24"></div> <!-- Spacer to prevent content from being hidden behind fixed footer -->
+    
+    <script>
+        const startScanButton = document.getElementById('start-scan');
+        const readerElement = document.getElementById('reader');
+        const resultElement = document.getElementById('result');
+        const listaIngressosElement = document.getElementById('lista-ingressos');
+        const scanAnotherButton = document.getElementById('scan-another');
+
+        let ingressosLidos = [];
+        
+        startScanButton.addEventListener('click', () => {
+            iniciarLeitura();
+        });
+
+        scanAnotherButton.addEventListener('click', () => {
+            iniciarLeitura();
+        });
+
+        function iniciarLeitura() {
+            startScanButton.style.display = 'none';
+            scanAnotherButton.style.display = 'none';
+            readerElement.style.display = 'block';
+            resultElement.innerHTML = '';
+
+            const html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.start(
+                { facingMode: "environment" }, // câmera traseira
+                {
+                    fps: 10,    // quadros por segundo
+                    qrbox: 250  // tamanho da área de detecção
+                },
+                qrCodeMessage => {
+                    html5QrCode.stop(); // Parar leitura após escanear
+                    mostrarDadosIngresso(qrCodeMessage);
+                },
+                errorMessage => {
+                    console.warn('Erro na leitura: ', errorMessage);
+                }
+            ).catch(err => {
+                console.error("Erro ao iniciar o leitor de QR Code: ", err);
+            });
+        }
+
+        function mostrarDadosIngresso(qrCodeMessage) {
+            const horarioEntrada = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+            const dados = JSON.parse(qrCodeMessage);
+            const nome = dados.nome;
+            const cpf = dados.cpf;
+            
+            const ingressoExistente = ingressosLidos.find(ingresso => ingresso.cpf === cpf);
+            if (ingressoExistente) {
+                resultElement.innerHTML = `
+                    <div class="bg-red-500 text-white p-4 rounded-md mb-4">
+                        <p>QR Code já foi lido anteriormente.</p>
+                        <p>Horário da Primeira Leitura: ${ingressoExistente.horarioEntrada}</p>
+                    </div>
+                    <p>Nome: ${ingressoExistente.nome}</p>
+                    <p>CPF: ${ingressoExistente.cpf}</p>
+                `;
+            } else {
+                resultElement.innerHTML = `
+                    <p>QR Code Lido com Sucesso</p>
+                    <p>Nome: ${nome}</p>
+                    <p>CPF: ${cpf}</p>
+                    <p>Horário de Entrada: ${horarioEntrada}</p>
+                `;
+                registrarIngresso(nome, cpf, horarioEntrada);
+            }
+            scanAnotherButton.style.display = 'block';
+        }
+
+        function registrarIngresso(nome, cpf, horarioEntrada) {
+            ingressosLidos.push({ nome, cpf, horarioEntrada });
+            const ingressoItem = document.createElement('li');
+            ingressoItem.classList.add('mb-2', 'p-2', 'border', 'border-gray-300', 'rounded-md');
+            ingressoItem.innerHTML = `
+                <strong>${ingressosLidos.length}. Nome: </strong>${nome}<br>
+                <strong>CPF: </strong>${cpf}<br>
+                <strong>Horário de Entrada: </strong>${horarioEntrada}
+            `;
+            listaIngressosElement.appendChild(ingressoItem);
+        }
     </script>
 </body>
 </html>
