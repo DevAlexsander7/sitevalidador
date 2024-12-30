@@ -37,7 +37,24 @@
         const scanAnotherButton = document.getElementById('scan-another');
 
         let ingressosLidos = [];
-        
+
+        // Função para carregar ingressos do localStorage
+        function carregarIngressos() {
+            const dados = localStorage.getItem('ingressosLidos');
+            if (dados) {
+                ingressosLidos = JSON.parse(dados);
+                ingressosLidos.forEach(({ nome, cpf, horarioEntrada }) => {
+                    adicionarIngressoNaLista(nome, cpf, horarioEntrada);
+                });
+            }
+        }
+
+        // Função para salvar ingressos no localStorage
+        function salvarIngressos() {
+            localStorage.setItem('ingressosLidos', JSON.stringify(ingressosLidos));
+        }
+
+        // Adiciona evento para iniciar leitura
         startScanButton.addEventListener('click', () => {
             iniciarLeitura();
         });
@@ -73,10 +90,21 @@
 
         function mostrarDadosIngresso(qrCodeMessage) {
             const horarioEntrada = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
-            const dados = JSON.parse(qrCodeMessage);
-            const nome = dados.nome;
-            const cpf = dados.cpf;
-            
+            let dados;
+            try {
+                dados = JSON.parse(qrCodeMessage);
+                if (!dados.nome || !dados.cpf) throw new Error("Dados incompletos no QR Code.");
+            } catch (e) {
+                resultElement.innerHTML = `
+                    <div class="bg-red-500 text-white p-4 rounded-md mb-4">
+                        <p>Erro ao processar QR Code: ${e.message}</p>
+                    </div>
+                `;
+                scanAnotherButton.style.display = 'block';
+                return;
+            }
+
+            const { nome, cpf } = dados;
             const ingressoExistente = ingressosLidos.find(ingresso => ingresso.cpf === cpf);
             if (ingressoExistente) {
                 resultElement.innerHTML = `
@@ -101,6 +129,11 @@
 
         function registrarIngresso(nome, cpf, horarioEntrada) {
             ingressosLidos.push({ nome, cpf, horarioEntrada });
+            salvarIngressos();
+            adicionarIngressoNaLista(nome, cpf, horarioEntrada);
+        }
+
+        function adicionarIngressoNaLista(nome, cpf, horarioEntrada) {
             const ingressoItem = document.createElement('li');
             ingressoItem.classList.add('mb-2', 'p-2', 'border', 'border-gray-300', 'rounded-md');
             ingressoItem.innerHTML = `
@@ -110,6 +143,9 @@
             `;
             listaIngressosElement.appendChild(ingressoItem);
         }
+
+        // Carrega ingressos salvos ao iniciar
+        carregarIngressos();
     </script>
 </body>
 </html>
